@@ -359,10 +359,11 @@ class PostVoteController extends GameController
             return $this->notFoundAction();
         }
 
-        // Je recherche le post associé à entry + status == 0. Si non trouvé, je redirige vers home du jeu.
+         // Je recherche le post associé à entry + status == 0. Si non trouvé, je redirige vers home du jeu.
+        // si post est rejeté, on redirige vers home du jeu.
         $post = $sg->getPostVotePostMapper()->findById($postId);
 
-        if (! $post) {
+        if (! $post || $post->getStatus() == 9) {
             return $this->redirect()->toUrl($this->url()->fromRoute('postvote',array('id' => $identifier)));
         }
 
