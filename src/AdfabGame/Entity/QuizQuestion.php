@@ -34,7 +34,7 @@ class QuizQuestion implements InputFilterAwareInterface
     protected $quiz;
 
     /**
-     * @ORM\OneToMany(targetEntity="QuizAnswer", mappedBy="question", cascade={"persist","remove"})
+     * @ORM\OneToMany(targetEntity="QuizAnswer", mappedBy="question", cascade={"persist","remove"}, orphanRemoval=true)
      */
     private $answers;
 
@@ -203,7 +203,8 @@ class QuizQuestion implements InputFilterAwareInterface
     public function removeAnswers(ArrayCollection $answers)
     {
         foreach ($answers as $answer) {
-            $answer->setQuiz(null);
+        	//$answer->setQuiz(null);
+            $answer->setQuestion(null);
             $this->answers->removeElement($answer);
         }
     }
