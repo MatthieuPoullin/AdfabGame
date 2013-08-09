@@ -309,6 +309,7 @@ class PostVote extends Game implements ServiceManagerAwareInterface
             $arrayPosts[$i]['votes'] = count($post->getVotes());
             $arrayPosts[$i]['id']    = $post->getId();
             $arrayPosts[$i]['user']  = $post->getUser();
+			$arrayPosts[$i]['created_at']  = $post->getCreatedAt();
             $i++;
         }
 

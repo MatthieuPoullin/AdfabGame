@@ -87,6 +87,7 @@ class Module
     {
         $cronjobs = $e->getParam('cronjobs');
 
+		
         $cronjobs['adfagame_email'] = array(
             'frequency' => '*/15 * * * *',
             'callback'  => '\AdfabGame\Service\Game::cronMail',
@@ -94,9 +95,16 @@ class Module
         );
 
         // tous les jours à 5:00 AM
-        $cronjobs['adfagame_instantwin_email'] = array(
+		$cronjobs['adfagame_instantwin_email'] = array(
                 'frequency' => '* 5 * * *',
                 'callback'  => '\AdfabGame\Service\Cron::instantWinEmail',
+                'args'      => array(),
+        );
+		
+		// tous les jours à 5:00 AM
+		$cronjobs['adfagame_postvote_email'] = array(
+                'frequency' => '* 5 * * *',
+                'callback'  => '\AdfabGame\Service\Cron::postVoteEmail',
                 'args'      => array(),
         );
 

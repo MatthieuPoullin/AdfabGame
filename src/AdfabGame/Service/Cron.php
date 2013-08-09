@@ -80,15 +80,20 @@ class Cron extends EventProvider implements ServiceManagerAwareInterface
         $sm->get('ModuleManager')->loadModules();
         $sm->get('Application')->bootstrap();
 
+		$skinUrl = $sm->get('ViewRenderer')->url('home', array(), array('force_canonical' => true));
         $mailService = $sm->get('adfabuser_message');
         $gameService = $sm->get('adfabgame_instantwin_service');
         $options = $sm->get('adfabgame_module_options');
 
-        $from    = "admin@playground.fr";//$options->getEmailFromAddress();
-        $subject = "Votre jeu Instant gagnant ClubMetro"; //$options->getResetEmailSubjectLine();
+		$from = $options->getEmailFromAddress();
+        $subject = "Votre jeu Instant gagnant";
 
         // Je recherche les jeux instantwin en cours
         $games = $gameService->getActiveGames(false, 'instantwin');
+
+
+		$today = new \DateTime('now');
+		$today = $today->format('Y-m-d');
 
         // Je recherche les joueurs qui ont deja joué une seule fois au jeu mais pas rejoué dans le laps autorisé
         $arrayUsers = array();
@@ -97,15 +102,67 @@ class Cron extends EventProvider implements ServiceManagerAwareInterface
             foreach ($entries as $e) {
                 $arrayUsers[$e->getUser()->getId()]['user'] = $e->getUser();
                 $arrayUsers[$e->getUser()->getId()]['game'] = $game;
+				$arrayUsers[$e->getUser()->getId()]['created_at'] = $e->getCreatedAt()->format('Y-m-d');
+				$arrayUsers[$e->getUser()->getId()]['send_at'] = $e->getCreatedAt()->add(new \DateInterval('P2D'))->format('Y-m-d');
+				
             }
         }
 
-        // J'envoie un mail de relance
+        // J'envoie un mail de relance 1 seule fois à +2j
         foreach ($arrayUsers as $k => $entry) {
-            $user = $entry['user'];
+        	if($entry['send_at'] == $today){
+        		$user = $entry['user'];
+	            $game = $entry['game'];
+	           	$message = $mailService->createHtmlMessage($from, $user->getEmail(), $subject, 'adfab-game/frontend/email/game_instantwin_reminder', array('game' => $game, 'user' => $user, 'skinUrl' => $skinUrl));
+	           	$mailService->send($message);
+        	}
+        }
+    }
+
+	public static function postVoteEmail()
+    {
+        $configuration = require 'config/application.config.php';
+        $smConfig = isset($configuration['service_manager']) ? $configuration['service_manager'] : array();
+        $sm = new \Zend\ServiceManager\ServiceManager(new \Zend\Mvc\Service\ServiceManagerConfig($smConfig));
+        $sm->setService('ApplicationConfig', $configuration);
+        $sm->get('ModuleManager')->loadModules();
+        $sm->get('Application')->bootstrap();
+
+
+		$skinUrl = $sm->get('ViewRenderer')->url('home', array(), array('force_canonical' => true));
+        $mailService = $sm->get('adfabuser_message');
+        $gameService = $sm->get('adfabgame_postvote_service');
+        $options = $sm->get('adfabgame_module_options');
+
+		$from = $options->getEmailFromAddress();
+        $subject = "Invitez vos amis à voter pour vous";
+		
+		$games = $gameService->getActiveGames(false, 'postvote');
+		
+        $arrayUsers = array();
+        foreach ($games as $game) {
+           	$posts = $gameService->findArrayOfValidatedPosts($game, 'vote', '');
+            foreach ($posts as $post) {
+                $arrayUsers[$post['user']->getId()]['post'] = $post;
+                $arrayUsers[$post['user']->getId()]['game'] = $game;
+            }
+        }
+
+		$today = new \DateTime('now');
+		$today = $today->format('Y-m-d');
+		
+		// J'envoie un mail de relance 1 seule fois à +1j
+        foreach ($arrayUsers as $k => $entry) {
             $game = $entry['game'];
-            $message = $mailService->createHtmlMessage($from, $user->getEmail(), $subject, 'adfab-game/frontend/email/game_instantwin_reminder', array('game' => $game, 'user' => $user));
-            $mailService->send($message);
+			$post = $entry['post'];
+			$user = $post['user'];
+			$sendAt = $post['created_at']->add(new \DateInterval('P1D'))->format('Y-m-d');
+			
+			if($sendAt == $today){
+			
+            	$message = $mailService->createHtmlMessage($from, $user->getEmail(), $subject, 'adfab-game/frontend/email/postvote_reminder', array('game' => $game, 'user' => $user, 'post' => $post, 'skinUrl' => $skinUrl));
+            	$mailService->send($message);
+			}
         }
     }
 
